@@ -22,7 +22,8 @@ export const ChatStore = create(
           set(() => ({ loading: true }));
           // post data input to api
           const { data } = await axios.post("/api/chat", {
-            chat: inputChat,
+            messages: get().chats,
+            chat: inputChat
           });
           // data chat object
           const dataChat = {
