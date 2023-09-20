@@ -5,41 +5,40 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 // initial chat store
 export const ChatStore = create(
-  persist(
+  // persist(
     (set, get) => ({
+      ws: null,
       // default array chats
       chats: [],
-      // latest chat
-      chat: {},
       // default loading false
+      chat: {},
       loading: false,
+      setWS: _ws => {
+        console.log(get().ws)
+        get().ws?.close()
+        set(() => ({ ws: _ws}))
+      },
+      setLoading: _loading => set(() => ({ loading: _loading })),
       // store chat to api
-      addChat: async (inputChat) => {
+      setLastChat: async (chat) => {
         try {
-          // set new latest chat
-          set(() => ({ chat: { chat: inputChat, date: new Date() } }));
-          // set loading true
-          set(() => ({ loading: true }));
-          // post data input to api
-          const { data } = await axios.post("/api/chat", {
-            messages: get().chats,
-            chat: inputChat
-          });
-          // data chat object
-          const dataChat = {
-            // input chat
-            chat: inputChat,
-            // answer from api
-            answer: data,
-            // current date
-            date: new Date(),
-          };
-          // set default latest chat
-          set(() => ({ chat: {} }));
-          // set new data chat from api to new array
+          set((state) => ({ chat }));
+        } catch (err) {
+          // toast error
+          toast.error(
+            err.response && err.response.data.message
+              ? err.response.data.message
+              : err.message
+          );
+        }
+      },
+      addChat: async (chatResponse) => {
+        try {
           set((state) => ({
-            chats: [...state.chats, dataChat],
-            loading: false,
+            chats: [...state.chats, {
+              ...chatResponse,
+              date: new Date(),
+            }],
           }));
         } catch (err) {
           // toast error
@@ -48,9 +47,6 @@ export const ChatStore = create(
               ? err.response.data.message
               : err.message
           );
-          // console.log(err);
-          set(() => ({ chat: {} }));
-          set(() => ({ loading: false }));
         }
       },
       // remove one chat
@@ -69,10 +65,10 @@ export const ChatStore = create(
         set({ chats: [] });
       },
     }),
-    // set local storage
-    {
-      name: "next-openai-chats",
-      storage: createJSONStorage(() => localStorage),
-    }
-  )
+  //   // set local storage
+  //   {
+  //     name: "next-openai-chats",
+  //     storage: createJSONStorage(() => localStorage),
+  //   }
+  // )
 );

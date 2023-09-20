@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { ChatStore } from "../store/ChatStore";
 import dayjs from "dayjs";
 var relativeTime = require("dayjs/plugin/relativeTime");
@@ -12,19 +12,22 @@ import {
   IconRobot,
   IconSend,
   IconTrash,
+  IconConnect
 } from "../components/Icon";
 import ClientSide from "../components/ClientSide";
 import AnimateChats from "../components/AnimateChats";
 import { Dialog } from "@headlessui/react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function PageHome() {
   // store chats
-  const { chats, chat, addChat, loading, removeAllChat, removeOneChat } =
+  const { ws, setWS, chat, chats, addChat, setLastChat, loading, setLoading,removeAllChat, removeOneChat } =
     ChatStore((state) => state);
 
   // state text
   const [text, setText] = useState("");
+  const tokenRef = useRef(null)
+  const parentChatRef = useRef(null)
 
   // handler form submit
   const handlerSubmitChat = (event) => {
@@ -32,11 +35,52 @@ export default function PageHome() {
     // if text greater than 0 and less than 300 character do it
     if (text.length > 0 && text.length <= 300) {
       // store text to addChat store
-      addChat(text);
+      ws.send(text)
       // set text to default
       setText("");
     }
   };
+  const handlerSubmitWebsocket = useCallback((event) => {
+    console.log("Websocket url changed")
+    event.preventDefault();
+    console.log(process.env)  
+    // if text greater than 0 and less than 300 character do it
+    if(tokenRef?.current?.value && parentChatRef?.current?.value) {
+      let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/qa/retrieve/${parentChatRef?.current.value}/ws?token=${tokenRef?.current.value}`)
+      newWS.onclose = () => {
+        console.log("websocket disconnected");
+        toast.success("Previous websocket disconnected")
+      }
+      newWS.onerror = err => console.error(err);
+      newWS.onopen = () => {
+        console.log("websocket connected");
+        toast.success("Successfully connected")
+        setWS(newWS);
+      }
+    }
+    setText("");
+  }, [tokenRef?.current?.value, parentChatRef?.current?.value])
+
+  const handleDataReceived = useCallback((ev) => {
+    const recv = JSON.parse(ev.data)
+    const { sender, message, type } = recv
+    if (type == "message")
+      addChat({ sender,message })
+    else if (type == "stream_start")
+      setLastChat({ sender, message })
+    else if (type == "stream_token")
+      setLastChat({ ...chat, message: `${chat.message} ${message}`.replace(" ' ", "'").replace(" ,", ",").replace(" .", ".") })
+    else if (type == "stream_end") {
+      addChat(chat)
+      setLastChat({})
+    } else if (type == "error") {
+      toast.error(message)
+      setLastChat({})
+    }
+  }, [chat])
+
+  if (ws)
+    ws.onmessage = handleDataReceived
 
   // format date
   const formatDate = (date) => {
@@ -99,6 +143,26 @@ export default function PageHome() {
                   </span>
                 </div>
               </div>
+
+              <form onSubmit={handlerSubmitWebsocket} className="flex">
+                <input
+                  className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-gray-600 ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
+                  ref={tokenRef}
+                  type="text"
+                  placeholder="Session Token"
+                />
+                <input
+                  className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
+                  type="text"
+                  placeholder="Chat Id"
+                  ref={parentChatRef}
+                />
+                <button
+                  type="submit"
+                  className="flex-[0.5] flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
+                  Connect
+                </button>
+              </form>              
 
               {chats.length > 1 && (
                 <div className="flex items-center px-1">
@@ -173,99 +237,99 @@ export default function PageHome() {
                 {chats?.length > 0 &&
                   chats?.map((item, index) => (
                     <Fragment key={index}>
-                      <div className="flex w-full mt-2 space-x-3 max-w-xs ml-auto justify-end">
-                        <div className="relative">
-                          <div className="after:content-['▸'] after:absolute after:top-0 after:right-0 after:translate-x-4 after:text-3xl after:text-blue-600 bg-blue-600 text-white p-3 rounded-l-lg rounded-br-lg">
-                            <p className="text-sm leading-relaxed">
-                              {item.chat}
-                            </p>
-                          </div>
-                          <span className="text-xs text-gray-500 leading-none">
-                            {formatDate(item.date)}
-                          </span>
-                        </div>
-
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => setModalRemoveOne(index)}>
-                            <IconProfile />
-                          </button>
-                        </div>
-
-                        <Dialog
-                          as="div"
-                          className="relative z-40"
-                          open={modalRemoveOne === index}
-                          onClose={() => setModalRemoveOne()}>
-                          <div className="fixed inset-0 bg-black bg-opacity-25" />
-                          <div className="fixed inset-0 overflow-y-auto">
-                            <div className="flex min-h-full items-center justify-center p-4 text-center">
-                              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                                <Dialog.Title
-                                  as="h3"
-                                  className="font-medium leading-6 text-gray-900">
-                                  Are you sure ?
-                                </Dialog.Title>
-                                <Dialog.Description className="mt-1">
-                                  Are you sure delete chat {item.chat} ?
-                                </Dialog.Description>
-                                <div className="mt-4 flex justify-end space-x-4">
-                                  <button
-                                    type="button"
-                                    className="inline-flex justify-center rounded-md px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100"
-                                    onClick={() => setModalRemoveOne()}>
-                                    Cancel
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="inline-flex justify-center rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200"
-                                    onClick={() => {
-                                      setModalRemoveOne(), removeOneChat(item);
-                                    }}>
-                                    Yes, delete
-                                  </button>
-                                </div>
-                              </Dialog.Panel>
+                      { item.sender == "user" && (
+                        <div className="flex w-full mt-2 space-x-3 max-w-xs ml-auto justify-end">
+                          <div className="relative">
+                            <div className="after:content-['▸'] after:absolute after:top-0 after:right-0 after:translate-x-4 after:text-3xl after:text-blue-600 bg-blue-600 text-white p-3 rounded-l-lg rounded-br-lg">
+                              <p className="text-sm leading-relaxed">
+                                {item.message}
+                              </p>
                             </div>
+                            <span className="text-xs text-gray-500 leading-none">
+                              {formatDate(item.date)}
+                            </span>
                           </div>
-                        </Dialog>
-                      </div>
-                      <div className="flex w-full mt-2 space-x-3 max-w-xs">
-                        <div>
-                          <IconRobot />
-                        </div>
-                        <div className="relative">
-                          <div className="before:content-['◂'] before:absolute before:top-0 before:left-0 before:-translate-x-4 before:text-3xl before:text-gray-200 bg-gray-200 p-3 rounded-r-lg rounded-bl-lg">
-                            <p className="text-sm leading-relaxed">
-                              {item.answer}
-                            </p>
+
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setModalRemoveOne(index)}>
+                              <IconProfile />
+                            </button>
                           </div>
-                          <span className="text-xs text-gray-500 leading-none">
-                            {formatDate(item.date)}
-                          </span>
-                        </div>
-                      </div>
+
+                          <Dialog
+                            as="div"
+                            className="relative z-40"
+                            open={modalRemoveOne === index}
+                            onClose={() => setModalRemoveOne()}>
+                            <div className="fixed inset-0 bg-black bg-opacity-25" />
+                            <div className="fixed inset-0 overflow-y-auto">
+                              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                                  <Dialog.Title
+                                    as="h3"
+                                    className="font-medium leading-6 text-gray-900">
+                                    Are you sure ?
+                                  </Dialog.Title>
+                                  <Dialog.Description className="mt-1">
+                                    Are you sure delete chat {item.chat} ?
+                                  </Dialog.Description>
+                                  <div className="mt-4 flex justify-end space-x-4">
+                                    <button
+                                      type="button"
+                                      className="inline-flex justify-center rounded-md px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100"
+                                      onClick={() => setModalRemoveOne()}>
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="inline-flex justify-center rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200"
+                                      onClick={() => {
+                                        setModalRemoveOne(), removeOneChat(item);
+                                      }}>
+                                      Yes, delete
+                                    </button>
+                                  </div>
+                                </Dialog.Panel>
+                              </div>
+                            </div>
+                          </Dialog>
+                        </div>)
+                      }
+                      { item.sender == "agent" && (
+                        <div className="flex w-full mt-2 space-x-3 max-w-xs">
+                          <div>
+                            <IconRobot />
+                          </div>
+                          <div className="relative">
+                            <div className="before:content-['◂'] before:absolute before:top-0 before:left-0 before:-translate-x-4 before:text-3xl before:text-gray-200 bg-gray-200 p-3 rounded-r-lg rounded-bl-lg">
+                              <p className="text-sm leading-relaxed">
+                                {item.message}
+                              </p>
+                            </div>
+                            <span className="text-xs text-gray-500 leading-none">
+                              {formatDate(item.date)}
+                            </span>
+                          </div>
+                        </div>)
+                      }
                     </Fragment>
                   ))}
               </AnimateChats>
-              {chats?.length > 0 && chat?.chat && (
-                <div className="flex w-full mt-2 space-x-3 max-w-xs ml-auto justify-end">
-                  <div className="relative">
-                    <div className="after:content-['▸'] after:absolute after:top-0 after:right-0 after:translate-x-4 after:text-3xl after:text-blue-600 bg-blue-600 text-white p-3 rounded-l-lg rounded-br-lg">
-                      <p className="text-sm leading-relaxed">{chat.chat}</p>
-                    </div>
-                    <span className="text-xs text-gray-500 leading-none">
-                      {formatDate(chat.date)}
-                    </span>
-                  </div>
-
-                  <div>
-                    <button type="button">
-                      <IconProfile />
-                    </button>
+              {chats?.length > 0 && chat?.message && (
+                <div className="flex w-full mt-2 space-x-3 max-w-xs">
+                <div>
+                  <IconRobot />
+                </div>
+                <div className="relative">
+                  <div className="before:content-['◂'] before:absolute before:top-0 before:left-0 before:-translate-x-4 before:text-3xl before:text-gray-200 bg-gray-200 p-3 rounded-r-lg rounded-bl-lg">
+                    <p className="text-sm leading-relaxed">
+                      {chat.message}
+                    </p>
                   </div>
                 </div>
+              </div>
               )}
               {loading && (
                 <div
