@@ -69,7 +69,7 @@ export default function PageHome() {
     else if (type == "stream_start")
       setLastChat({ sender, message })
     else if (type == "stream_token")
-      setLastChat({ ...chat, message: `${chat.message} ${message}`.replace(" ' ", "'").replace(" ,", ",").replace(" .", ".") })
+      setLastChat({ ...chat, message: `${chat.message}${message}`})
     else if (type == "stream_end") {
       addChat(chat)
       setLastChat({})
