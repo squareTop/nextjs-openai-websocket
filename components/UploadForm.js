@@ -14,7 +14,7 @@ export function UploadForm({emailRef, ...props}) {
     try {
       const data = new FormData()
       for (let i = 0; i < files.length; ++i)
-        data.append(`files[${i}]`, files[i])
+        data.append(`files`, files[i])
 
       alert(emailRef?.current?.value)
 
