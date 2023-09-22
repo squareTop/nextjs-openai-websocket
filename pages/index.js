@@ -18,6 +18,7 @@ import ClientSide from "../components/ClientSide";
 import AnimateChats from "../components/AnimateChats";
 import { Dialog } from "@headlessui/react";
 import toast, { Toaster } from "react-hot-toast";
+import { UploadForm } from "../components/UploadForm";
 
 export default function PageHome() {
   // store chats
@@ -26,15 +27,17 @@ export default function PageHome() {
 
   // state text
   const [text, setText] = useState("");
-  const tokenRef = useRef(null)
-  const parentChatRef = useRef(null)
+  const emailRef = useRef(null)
+  // const parentChatRef = useRef(null)
 
   // handler form submit
   const handlerSubmitChat = (event) => {
     event.preventDefault();
+    console.log(ws, text)
     // if text greater than 0 and less than 300 character do it
     if (text.length > 0 && text.length <= 300) {
       // store text to addChat store
+      console.log(ws.send)
       ws.send(text)
       // set text to default
       setText("");
@@ -45,11 +48,12 @@ export default function PageHome() {
     event.preventDefault();
     console.log(process.env)  
     // if text greater than 0 and less than 300 character do it
-    if(tokenRef?.current?.value && parentChatRef?.current?.value) {
-      let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/qa/retrieve/${parentChatRef?.current.value}/ws?token=${tokenRef?.current.value}`)
+    if(emailRef?.current?.value/* && parentChatRef?.current?.value*/) {
+      let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`)
+      // let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_URL}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
       newWS.onclose = () => {
         console.log("websocket disconnected");
-        toast.success("Previous websocket disconnected")
+        // toast.success("Previous websocket disconnected")
       }
       newWS.onerror = err => console.error(err);
       newWS.onopen = () => {
@@ -59,25 +63,30 @@ export default function PageHome() {
       }
     }
     setText("");
-  }, [tokenRef?.current?.value, parentChatRef?.current?.value])
+  }, [emailRef?.current?.value/*, parentChatRef?.current?.value*/, setWS])
 
   const handleDataReceived = useCallback((ev) => {
     const recv = JSON.parse(ev.data)
     const { sender, message, type } = recv
     if (type == "message")
       addChat({ sender,message })
-    else if (type == "stream_start")
+    else if (type == "stream_start") {
       setLastChat({ sender, message })
+      setLoading(true)
+    }
     else if (type == "stream_token")
       setLastChat({ ...chat, message: `${chat.message}${message}`})
     else if (type == "stream_end") {
       addChat(chat)
       setLastChat({})
+      setLoading(false)
     } else if (type == "error") {
       toast.error(message)
       setLastChat({})
+      setLoading(false)
+
     }
-  }, [chat])
+  }, [chat, addChat, setLastChat])
 
   if (ws)
     ws.onmessage = handleDataReceived
@@ -144,19 +153,21 @@ export default function PageHome() {
                 </div>
               </div>
 
-              <form onSubmit={handlerSubmitWebsocket} className="flex">
+              <form onSubmit={handlerSubmitWebsocket} className="flex items-center">
                 <input
                   className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-gray-600 ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
-                  ref={tokenRef}
+                  ref={emailRef}
                   type="text"
-                  placeholder="Session Token"
+                  placeholder="Email"
                 />
-                <input
+                <UploadForm emailRef={emailRef}/>
+                {/* <input
                   className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
                   type="text"
                   placeholder="Chat Id"
                   ref={parentChatRef}
-                />
+                  hidden
+                /> */}
                 <button
                   type="submit"
                   className="flex-[0.5] flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
