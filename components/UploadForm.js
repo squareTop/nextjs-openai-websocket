@@ -75,8 +75,7 @@ export function UploadForm({ emailRef, ...props }) {
         style={{ visibility: files?.length > 0 ? "visible" : "hidden" }}
       />
       <button
-        className="rounded border-2 border-[#198754] ml-2 p-2 text-sm flex-1 text-center"
-        style={{ visibility: files?.length > 0 ? "visible" : "hidden" }}
+        className="rounded border-2 border-[#198754] ml-2 p-2 text-sm flex-1 text-center visible"
         onClick={onEmbed}
       >
         🔒 Embed
