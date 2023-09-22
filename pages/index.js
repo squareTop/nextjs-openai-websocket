@@ -12,7 +12,7 @@ import {
   IconRobot,
   IconSend,
   IconTrash,
-  IconConnect
+  IconConnect,
 } from "../components/Icon";
 import ClientSide from "../components/ClientSide";
 import AnimateChats from "../components/AnimateChats";
@@ -22,74 +22,90 @@ import { UploadForm } from "../components/UploadForm";
 
 export default function PageHome() {
   // store chats
-  const { ws, setWS, chat, chats, addChat, setLastChat, loading, setLoading,removeAllChat, removeOneChat } =
-    ChatStore((state) => state);
+  const {
+    ws,
+    setWS,
+    chat,
+    chats,
+    addChat,
+    setLastChat,
+    loading,
+    setLoading,
+    removeAllChat,
+    removeOneChat,
+  } = ChatStore((state) => state);
 
   // state text
   const [text, setText] = useState("");
-  const emailRef = useRef(null)
+  const emailRef = useRef(null);
   // const parentChatRef = useRef(null)
 
   // handler form submit
   const handlerSubmitChat = (event) => {
     event.preventDefault();
-    console.log(ws, text)
+    console.log(ws, text);
     // if text greater than 0 and less than 300 character do it
     if (text.length > 0 && text.length <= 300) {
       // store text to addChat store
-      console.log(ws.send)
-      ws.send(text)
+      console.log(ws.send);
+      ws.send(text);
       // set text to default
       setText("");
     }
   };
-  const handlerSubmitWebsocket = useCallback((event) => {
-    console.log("Websocket url changed")
-    event.preventDefault();
-    console.log(process.env)  
-    // if text greater than 0 and less than 300 character do it
-    if(emailRef?.current?.value/* && parentChatRef?.current?.value*/) {
-      let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`)
-      // let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
-      newWS.onclose = () => {
-        console.log("websocket disconnected");
-        // toast.success("Previous websocket disconnected")
+  const handlerSubmitWebsocket = useCallback(
+    (event) => {
+      console.log("Websocket url changed");
+      event.preventDefault();
+      console.log(process.env);
+      // if text greater than 0 and less than 300 character do it
+      if (emailRef?.current?.value /* && parentChatRef?.current?.value*/) {
+        let newWS = new WebSocket(
+          `${process.env.NEXT_PUBLIC_PROTOCOL == "http" ? "ws" : "wss"}://${
+            process.env.NEXT_PUBLIC_DOMAIN
+          }/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`
+        );
+        // let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
+        newWS.onclose = () => {
+          console.log("websocket disconnected");
+          // toast.success("Previous websocket disconnected")
+        };
+        newWS.onerror = (err) => console.error(err);
+        newWS.onopen = () => {
+          console.log("websocket connected");
+          toast.success("Successfully connected");
+          setWS(newWS);
+        };
       }
-      newWS.onerror = err => console.error(err);
-      newWS.onopen = () => {
-        console.log("websocket connected");
-        toast.success("Successfully connected")
-        setWS(newWS);
+      setText("");
+    },
+    [emailRef?.current?.value /*, parentChatRef?.current?.value*/, setWS]
+  );
+
+  const handleDataReceived = useCallback(
+    (ev) => {
+      const recv = JSON.parse(ev.data);
+      const { sender, message, type } = recv;
+      if (type == "message") addChat({ sender, message });
+      else if (type == "stream_start") {
+        setLastChat({ sender, message });
+        setLoading(true);
+      } else if (type == "stream_token")
+        setLastChat({ ...chat, message: `${chat.message}${message}` });
+      else if (type == "stream_end") {
+        addChat(chat);
+        setLastChat({});
+        setLoading(false);
+      } else if (type == "error") {
+        toast.error(message);
+        setLastChat({});
+        setLoading(false);
       }
-    }
-    setText("");
-  }, [emailRef?.current?.value/*, parentChatRef?.current?.value*/, setWS])
+    },
+    [chat, addChat, setLastChat]
+  );
 
-  const handleDataReceived = useCallback((ev) => {
-    const recv = JSON.parse(ev.data)
-    const { sender, message, type } = recv
-    if (type == "message")
-      addChat({ sender,message })
-    else if (type == "stream_start") {
-      setLastChat({ sender, message })
-      setLoading(true)
-    }
-    else if (type == "stream_token")
-      setLastChat({ ...chat, message: `${chat.message}${message}`})
-    else if (type == "stream_end") {
-      addChat(chat)
-      setLastChat({})
-      setLoading(false)
-    } else if (type == "error") {
-      toast.error(message)
-      setLastChat({})
-      setLoading(false)
-
-    }
-  }, [chat, addChat, setLastChat])
-
-  if (ws)
-    ws.onmessage = handleDataReceived
+  if (ws) ws.onmessage = handleDataReceived;
 
   // format date
   const formatDate = (date) => {
@@ -153,27 +169,36 @@ export default function PageHome() {
                 </div>
               </div>
 
-              <form onSubmit={handlerSubmitWebsocket} className="flex items-center">
-                <input
-                  className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
-                  ref={emailRef}
-                  type="text"
-                  placeholder="Email"
+              <div className="flex flex-col">
+                <form
+                  onSubmit={handlerSubmitWebsocket}
+                  className="flex items-center"
+                >
+                  <input
+                    className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
+                    ref={emailRef}
+                    type="text"
+                    placeholder="Email"
+                  />
+                  {/* <input
+                    className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
+                    type="text"
+                    placeholder="Chat Id"
+                    ref={parentChatRef}
+                    hidden
+                  /> */}
+                  <button
+                    type="submit"
+                    className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                  >
+                    Connect
+                  </button>
+                </form>
+                <UploadForm
+                  emailRef={emailRef}
+                  className="flex items-center mt-2 mx-3"
                 />
-                {/* <input
-                  className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
-                  type="text"
-                  placeholder="Chat Id"
-                  ref={parentChatRef}
-                  hidden
-                /> */}
-                <button
-                  type="submit"
-                  className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
-                  Connect
-                </button>
-              </form>              
-              <UploadForm emailRef={emailRef} className="flex items-center"/>
+              </div>
 
               {chats.length > 1 && (
                 <div className="flex items-center px-1">
@@ -185,14 +210,16 @@ export default function PageHome() {
                     as="div"
                     className="relative z-40"
                     open={modalRemoveAll}
-                    onClose={() => setModalRemoveAll(false)}>
+                    onClose={() => setModalRemoveAll(false)}
+                  >
                     <div className="fixed inset-0 bg-black bg-opacity-25" />
                     <div className="fixed inset-0 overflow-y-auto">
                       <div className="flex min-h-full items-center justify-center p-4 text-center">
                         <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                           <Dialog.Title
                             as="h3"
-                            className="font-medium leading-6 text-gray-900">
+                            className="font-medium leading-6 text-gray-900"
+                          >
                             Are you sure ?
                           </Dialog.Title>
                           <Dialog.Description className="mt-1">
@@ -202,7 +229,8 @@ export default function PageHome() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100"
-                              onClick={() => setModalRemoveAll(false)}>
+                              onClick={() => setModalRemoveAll(false)}
+                            >
                               Cancel
                             </button>
                             <button
@@ -210,7 +238,8 @@ export default function PageHome() {
                               className="inline-flex justify-center rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200"
                               onClick={() => {
                                 setModalRemoveAll(false), removeAllChat();
-                              }}>
+                              }}
+                            >
                               Yes, delete all chats
                             </button>
                           </div>
@@ -229,7 +258,8 @@ export default function PageHome() {
               {chats?.length === 0 && (
                 <div
                   className="flex items-center justify-center h-full w-full"
-                  ref={chatRef}>
+                  ref={chatRef}
+                >
                   <div className="text-center text-gray-600">
                     <p>No message here...</p>
                     <p>Send a message or tap the greeting icon below</p>
@@ -237,7 +267,8 @@ export default function PageHome() {
                       <button
                         type="button"
                         className="my-10"
-                        onClick={() => addChat("Hello, how are you?")}>
+                        onClick={() => addChat("Hello, how are you?")}
+                      >
                         <IconHand loading={loading} />
                       </button>
                     </div>
@@ -248,7 +279,7 @@ export default function PageHome() {
                 {chats?.length > 0 &&
                   chats?.map((item, index) => (
                     <Fragment key={index}>
-                      { item.sender == "user" && (
+                      {item.sender == "user" && (
                         <div className="flex w-full mt-2 space-x-3 max-w-xs ml-auto justify-end">
                           <div className="relative">
                             <div className="after:content-['▸'] after:absolute after:top-0 after:right-0 after:translate-x-4 after:text-3xl after:text-blue-600 bg-blue-600 text-white p-3 rounded-l-lg rounded-br-lg">
@@ -264,7 +295,8 @@ export default function PageHome() {
                           <div>
                             <button
                               type="button"
-                              onClick={() => setModalRemoveOne(index)}>
+                              onClick={() => setModalRemoveOne(index)}
+                            >
                               <IconProfile />
                             </button>
                           </div>
@@ -273,14 +305,16 @@ export default function PageHome() {
                             as="div"
                             className="relative z-40"
                             open={modalRemoveOne === index}
-                            onClose={() => setModalRemoveOne()}>
+                            onClose={() => setModalRemoveOne()}
+                          >
                             <div className="fixed inset-0 bg-black bg-opacity-25" />
                             <div className="fixed inset-0 overflow-y-auto">
                               <div className="flex min-h-full items-center justify-center p-4 text-center">
                                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                                   <Dialog.Title
                                     as="h3"
-                                    className="font-medium leading-6 text-gray-900">
+                                    className="font-medium leading-6 text-gray-900"
+                                  >
                                     Are you sure ?
                                   </Dialog.Title>
                                   <Dialog.Description className="mt-1">
@@ -290,15 +324,18 @@ export default function PageHome() {
                                     <button
                                       type="button"
                                       className="inline-flex justify-center rounded-md px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100"
-                                      onClick={() => setModalRemoveOne()}>
+                                      onClick={() => setModalRemoveOne()}
+                                    >
                                       Cancel
                                     </button>
                                     <button
                                       type="button"
                                       className="inline-flex justify-center rounded-md bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200"
                                       onClick={() => {
-                                        setModalRemoveOne(), removeOneChat(item);
-                                      }}>
+                                        setModalRemoveOne(),
+                                          removeOneChat(item);
+                                      }}
+                                    >
                                       Yes, delete
                                     </button>
                                   </div>
@@ -306,9 +343,9 @@ export default function PageHome() {
                               </div>
                             </div>
                           </Dialog>
-                        </div>)
-                      }
-                      { item.sender == "agent" && (
+                        </div>
+                      )}
+                      {item.sender == "agent" && (
                         <div className="flex w-full mt-2 space-x-3 max-w-xs">
                           <div>
                             <IconRobot />
@@ -323,29 +360,28 @@ export default function PageHome() {
                               {formatDate(item.date)}
                             </span>
                           </div>
-                        </div>)
-                      }
+                        </div>
+                      )}
                     </Fragment>
                   ))}
               </AnimateChats>
               {chats?.length > 0 && chat?.message && (
                 <div className="flex w-full mt-2 space-x-3 max-w-xs">
-                <div>
-                  <IconRobot />
-                </div>
-                <div className="relative">
-                  <div className="before:content-['◂'] before:absolute before:top-0 before:left-0 before:-translate-x-4 before:text-3xl before:text-gray-200 bg-gray-200 p-3 rounded-r-lg rounded-bl-lg">
-                    <p className="text-sm leading-relaxed">
-                      {chat.message}
-                    </p>
+                  <div>
+                    <IconRobot />
+                  </div>
+                  <div className="relative">
+                    <div className="before:content-['◂'] before:absolute before:top-0 before:left-0 before:-translate-x-4 before:text-3xl before:text-gray-200 bg-gray-200 p-3 rounded-r-lg rounded-bl-lg">
+                      <p className="text-sm leading-relaxed">{chat.message}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
               )}
               {loading && (
                 <div
                   className="text-center flex justify-center py-4"
-                  ref={loadingRef}>
+                  ref={loadingRef}
+                >
                   <IconLoadingHourglass />
                 </div>
               )}
@@ -365,7 +401,8 @@ export default function PageHome() {
                 />
                 <button
                   type="submit"
-                  className="absolute right-8 top-2 change-color fill-gray-300">
+                  className="absolute right-8 top-2 change-color fill-gray-300"
+                >
                   {loading ? <IconLoadingSend /> : <IconSend />}
                 </button>
               </form>
