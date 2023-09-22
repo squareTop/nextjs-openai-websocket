@@ -14,7 +14,7 @@ export function UploadForm({emailRef}) {
       data.set('file', file)
 
       console.log("Email:", emailRef?.current?.value)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_URL}/documents/upload?email=${emailRef?.current?.value}`, {
+      const res = await fetch(`https://${process.env.NEXT_PUBLIC_DOMAIN}/documents/upload?email=${emailRef?.current?.value}`, {
         method: 'POST',
         body: data
       })
