@@ -253,7 +253,7 @@ export default function PageHome() {
           </div>
 
           {/* chats */}
-          <div className="flex flex-col flex-grow h-0 p-4 overflow-auto py-20 md:py-10 mt-6 md:mt-8">
+          <div className="flex flex-col flex-grow h-0 p-4 overflow-auto py-20 md:py-10 mt-6 md:mt-10">
             <>
               {chats?.length === 0 && (
                 <div
