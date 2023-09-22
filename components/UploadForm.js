@@ -19,7 +19,7 @@ export function UploadForm({emailRef, ...props}) {
       alert(emailRef?.current?.value)
 
       console.log("Email:", emailRef?.current?.value)
-      const res = await fetch(`https://${process.env.NEXT_PUBLIC_DOMAIN}/documents/upload?email=${emailRef?.current?.value}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_PROTOCOL}://${process.env.NEXT_PUBLIC_DOMAIN}/documents/upload?email=${emailRef?.current?.value}`, {
         method: 'POST',
         body: data
       })
