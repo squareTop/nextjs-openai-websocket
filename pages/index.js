@@ -49,8 +49,8 @@ export default function PageHome() {
     console.log(process.env)  
     // if text greater than 0 and less than 300 character do it
     if(emailRef?.current?.value/* && parentChatRef?.current?.value*/) {
-      let newWS = new WebSocket(`wss://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`)
-      // let newWS = new WebSocket(`wss://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
+      let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`)
+      // let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
       newWS.onclose = () => {
         console.log("websocket disconnected");
         // toast.success("Previous websocket disconnected")
