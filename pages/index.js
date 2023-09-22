@@ -155,12 +155,11 @@ export default function PageHome() {
 
               <form onSubmit={handlerSubmitWebsocket} className="flex items-center">
                 <input
-                  className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-gray-600 ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
+                  className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
                   ref={emailRef}
                   type="text"
                   placeholder="Email"
                 />
-                <UploadForm emailRef={emailRef}/>
                 {/* <input
                   className="flex-1 flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600 input-chat"
                   type="text"
@@ -170,10 +169,11 @@ export default function PageHome() {
                 /> */}
                 <button
                   type="submit"
-                  className="flex-[0.5] flex items-center h-10 w-full rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
+                  className="flex items-center h-10 rounded px-3 mx-3 text-sm ring-1 ring-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-600">
                   Connect
                 </button>
               </form>              
+              <UploadForm emailRef={emailRef} className="flex items-center"/>
 
               {chats.length > 1 && (
                 <div className="flex items-center px-1">

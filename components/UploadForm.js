@@ -2,16 +2,21 @@
 
 import React, { useState } from 'react'
 
-export function UploadForm({emailRef}) {
-  const [file, setFile] = useState()
+export function UploadForm({emailRef, ...props}) {
+  const [files, setFiles] = useState()
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    if (!file) return
+    alert("AAA")
+    if (!files || !files.length || files.length == 0) return
+    console.log(files)
 
     try {
       const data = new FormData()
-      data.set('file', file)
+      for (let i = 0; i < files.length; ++i)
+        data.append(`files[${i}]`, files[i])
+
+      alert(emailRef?.current?.value)
 
       console.log("Email:", emailRef?.current?.value)
       const res = await fetch(`https://${process.env.NEXT_PUBLIC_DOMAIN}/documents/upload?email=${emailRef?.current?.value}`, {
@@ -28,16 +33,17 @@ export function UploadForm({emailRef}) {
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} {...props}>
         <label htmlFor='file' className='rounded border-2 border-[#0d6efd] p-2 text-xl'>+</label>
       <input
         type="file"
         name="file"
         id = "file"
-        onChange={(e) => setFile(e.target.files?.[0])}
+        multiple
+        onChange={(e) => setFiles(e.target.files)}
         hidden
       />
-      <input type="submit" value="OK" className='rounded border-2 border-[#b02a37] p-2 text-xl' style={{visibility: file ? 'visible' : 'hidden'}}/>
+      <input type="submit" value="OK" className='rounded border-2 border-[#b02a37] p-2 text-xl' style={{visibility: files?.length > 0 ? 'visible' : 'hidden'}}/>
     </form>
   )
 }
