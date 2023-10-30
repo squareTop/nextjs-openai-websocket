@@ -33,6 +33,7 @@ export default function PageHome() {
     setLoading,
     removeAllChat,
     removeOneChat,
+    removeLastChat
   } = ChatStore((state) => state);
 
   // state text
@@ -47,7 +48,6 @@ export default function PageHome() {
     // if text greater than 0 and less than 300 character do it
     if (text.length > 0 && text.length <= 300) {
       // store text to addChat store
-      console.log(ws.send);
       ws.send(text);
       // set text to default
       setText("");
@@ -61,12 +61,12 @@ export default function PageHome() {
       // if text greater than 0 and less than 300 character do it
       if (emailRef?.current?.value /* && parentChatRef?.current?.value*/) {
         let newWS = new WebSocket(
-          `${process.env.NEXT_PUBLIC_PROTOCOL == "http" ? "ws" : "wss"}://${
-            process.env.NEXT_PUBLIC_DOMAIN
+          `${process.env.NEXT_PUBLIC_PROTOCOL == "http" ? "ws" : "wss"}://${process.env.NEXT_PUBLIC_DOMAIN
           }/qa/retrieve/abcdefghij/ws?email=${emailRef?.current.value}`
         );
         // let newWS = new WebSocket(`${process.env.NEXT_PUBLIC_PROTOCOL == 'http' ? 'ws' : 'wss'}://${process.env.NEXT_PUBLIC_DOMAIN}/qa/retrieve/${parentChatRef?.current.value}/ws?email=${emailRef?.current.value}`)
         newWS.onclose = () => {
+          toast.error("Unexpectedly disconnected");
           console.log("websocket disconnected");
           // toast.success("Previous websocket disconnected")
         };
@@ -100,6 +100,12 @@ export default function PageHome() {
         toast.error(message);
         setLastChat({});
         setLoading(false);
+        if (chats[chats.length - 1].sender == "user") {
+          let lastUserMessage = chats[chats.length - 1].message
+          console.log(lastUserMessage)
+          ws.send(lastUserMessage);
+          removeLastChat();
+        }
       }
     },
     [chat, addChat, setLastChat]
