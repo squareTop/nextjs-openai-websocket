@@ -351,7 +351,7 @@ export default function PageHome() {
                           </Dialog>
                         </div>
                       )}
-                      {item.sender == "agent" && (
+                      {item.sender == "assistant" && (
                         <div className="flex w-full mt-2 space-x-3 max-w-xs">
                           <div>
                             <IconRobot />
