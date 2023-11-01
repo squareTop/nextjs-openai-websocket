@@ -5,74 +5,87 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 // initial chat store
 export const ChatStore = create(
-  persist(
-    (set, get) => ({
-      // default array chats
-      chats: [],
-      // latest chat
-      chat: {},
-      // default loading false
-      loading: false,
-      // store chat to api
-      addChat: async (inputChat) => {
-        try {
-          // set new latest chat
-          set(() => ({ chat: { chat: inputChat, date: new Date() } }));
-          // set loading true
-          set(() => ({ loading: true }));
-          // post data input to api
-          const { data } = await axios.post("/api/chat", {
-            messages: get().chats,
-            chat: inputChat
-          });
-          // data chat object
-          const dataChat = {
-            // input chat
-            chat: inputChat,
-            // answer from api
-            answer: data,
-            // current date
-            date: new Date(),
-          };
-          // set default latest chat
-          set(() => ({ chat: {} }));
-          // set new data chat from api to new array
-          set((state) => ({
-            chats: [...state.chats, dataChat],
-            loading: false,
-          }));
-        } catch (err) {
-          // toast error
-          toast.error(
-            err.response && err.response.data.message
-              ? err.response.data.message
-              : err.message
-          );
-          // console.log(err);
-          set(() => ({ chat: {} }));
-          set(() => ({ loading: false }));
-        }
-      },
-      // remove one chat
-      removeOneChat: (item) => {
-        // toast success
-        toast.success(`Success delete ${item.chat}`);
-        // remove one chat by index
+  // persist(
+  (set, get) => ({
+    ws: null,
+    // default array chats
+    chats: [],
+    // default loading false
+    chat: {},
+    loading: false,
+    setWS: _ws => {
+      console.log(get().ws)
+      get().ws?.close()
+      set(() => ({ ws: _ws }))
+    },
+    setLoading: _loading => set(() => ({ loading: _loading })),
+    // store chat to api
+    setLastChat: async (chat) => {
+      try {
+        set((state) => ({ chat }));
+      } catch (err) {
+        // toast error
+        toast.error(
+          err.response && err.response.data.message
+            ? err.response.data.message
+            : err.message
+        );
+      }
+    },
+    addChat: async (chatResponse) => {
+      try {
         set((state) => ({
-          chats: state.chats.filter((x) => x !== item),
+          chats: [...state.chats, {
+            ...chatResponse,
+            date: new Date(),
+          }],
         }));
-      },
-      // remove all chats
-      removeAllChat: () => {
-        // toast success
-        toast.success(`Success delete all chats`);
-        set({ chats: [] });
-      },
-    }),
-    // set local storage
-    {
-      name: "next-openai-chats",
-      storage: createJSONStorage(() => localStorage),
-    }
-  )
+      } catch (err) {
+        // toast error
+        toast.error(
+          err.response && err.response.data.message
+            ? err.response.data.message
+            : err.message
+        );
+      }
+    },
+    removeLastChat: async () => {
+      try {
+        set((state) => {
+          let res = [...state.chats]
+          return {
+            chats: res.pop()
+          }
+        })
+      } catch (error) {
+        // toast error
+        toast.error(
+          err.response && err.response.data.message
+            ? err.response.data.message
+            : err.message
+        );
+      }
+    },
+    // remove one chat
+    removeOneChat: (item) => {
+      // toast success
+      toast.success(`Success delete ${item.chat}`);
+      // remove one chat by index
+      set((state) => ({
+        chats: state.chats.filter((x) => x !== item),
+      }));
+    },
+    // remove all chats
+    removeAllChat: () => {
+      // toast success
+      toast.success(`Success delete all chats`);
+      set({ chats: [] });
+    },
+  }),
+  //   // set local storage
+  //   {
+  //     name: "next-openai-chats",
+  //     storage: createJSONStorage(() => localStorage),
+  //   }
+  // )
 );

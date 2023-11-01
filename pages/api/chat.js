@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     if (chat) {
       // configuration api openai
       const configuration = new Configuration({
-        basePath: process.env.API_BASE,
+        basePath: `https://${process.env.NEXT_PUBLIC_DOMAIN}/openai/v1`,
         apiKey: process.env.API_KEY,
       });
       const openai = new OpenAIApi(configuration);

@@ -58,3 +58,17 @@ Open [https://chat.hadi.pw](https://chat.hadi.pw) the url in your browser for th
 | Screenshot Chat | Screenshot Chats |
 | --- | --- |
 | ![SS Chat](https://github.com/hadi-16/nextjs-chat-openai/blob/main/public/image/ss-chat.png?raw=true "ss nextjs chat openai") | ![SS Chats](https://github.com/hadi-16/nextjs-chat-openai/blob/main/public/image/ss-chats.png?raw=true "ss nextjs chat openai") |
+
+### When forking from this repository.
+```bash
+git remote add forking-repo https://github.com/eagerbeaver53/nextjs-openai-websocket
+git pull forking-rerpo foxel-back-end:foxel-back-end
+```
+This will create a branch foxel-back-end which is pulled from this repository.
+Then push to your Github repository.
+
+```bash
+git push -u origin foxel-back-end
+```
+
+Then create a PR and merge PR. That's all.
