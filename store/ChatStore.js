@@ -53,8 +53,9 @@ export const ChatStore = create(
       try {
         set((state) => {
           let res = [...state.chats]
+          res.pop()
           return {
-            chats: res.pop()
+            chats: res
           }
         })
       } catch (error) {
